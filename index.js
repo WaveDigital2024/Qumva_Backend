@@ -10,7 +10,7 @@ app.use(cors({
 app.use(express.json())
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://dataAdmin:ayon1234@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // mongodb+srv://dataAdmin:ayon1234@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -29,7 +29,7 @@ async function run() {
     const database = client.db("QumvaDB");
     const Taskcollections = database.collection("QumvaTasks");
     const usercollections = database.collection("Gameusers");
-   
+
     //apis
     //userReviewGetAPI
     // Games Collections Api
@@ -38,11 +38,32 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result)
     })
-   
-    
+    // API to update a task's "done" field to true
+    app.patch('/completetask/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          done: true
+        }
+      }
+      const result = await Taskcollections.updateOne(filter, updateDoc)
+      res.send(result)
+    })
+    // API to update user coin field 
+    app.patch('/updateuserpoints', async (req, res) => {
+      const email = req.body.email;
+      const points = req.body.points;
+      const filter = { email: email };
+      const updateDoc = {
+        $inc: { QumvaPoints: points }
+      };
+      const result = await usercollections.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
 
-   
+
 
     app.post('/users', async (req, res) => {
       const user = req.body
@@ -83,14 +104,14 @@ async function run() {
       res.send(result)
     })
 
-  
-
-   
-  
-  
 
 
-    
+
+
+
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

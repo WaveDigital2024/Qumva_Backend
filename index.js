@@ -105,6 +105,61 @@ async function run() {
     })
 
 
+    // ---------------------Transfer Point System----------------//
+    app.get('/checkpoints/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = await usercollections.findOne({ email: email });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.send({ QumvaPoints : user.QumvaPoints });
+    });
+
+    app.patch('/transferpoints', async (req, res) => {
+      const { fromEmail, toEmail, QumvaPoints } = req.body;
+
+      // Ensure minimum transfer amount
+      if (QumvaPoints < 20) {
+        return res.status(400).json({ error: 'Minimum transfer amount is 20 points' });
+      }
+
+      const fromUser = await usercollections.findOne({ email: fromEmail });
+      const toUser = await usercollections.findOne({ email: toEmail });
+
+      if (!fromUser) {
+        return res.status(404).json({ error: 'Sender not found' });
+      }
+
+      if (!toUser) {
+        return res.status(404).json({ error: 'Recipient not found' });
+      }
+
+      if (fromUser.QumvaPoints <= 10 || fromUser.QumvaPoints < QumvaPoints) {
+        return res.status(400).json({ error: 'Insufficient points to transfer' });
+      }
+
+      // Deduct points from sender
+      const updateFromUser = {
+        $inc: { QumvaPoints: - QumvaPoints }
+      };
+      await usercollections.updateOne({ email: fromEmail }, updateFromUser);
+
+      // Add points to recipient
+      const updateToUser = {
+        $inc: { QumvaPoints: QumvaPoints }
+      };
+      await usercollections.updateOne({ email: toEmail }, updateToUser);
+
+      res.send({ message: 'Points transferred successfully' });
+    });
+
+
+
+    //-----------------------------------------------------------//
+
+
 
 
 

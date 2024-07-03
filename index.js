@@ -50,6 +50,16 @@ async function run() {
       const result = await Taskcollections.updateOne(filter, updateDoc)
       res.send(result)
     })
+    // --------------admin delete task--------------// 
+    app.delete('/deletetask/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await Taskcollections.deleteOne(query);
+      res.send(result);
+    });
+
+
+    
     // API to update user coin field 
     app.patch('/updateuserpoints', async (req, res) => {
       const email = req.body.email;
@@ -155,10 +165,7 @@ async function run() {
       res.send({ message: 'Points transferred successfully' });
     });
 
-
-
     //-----------------------------------------------------------//
-
 
 
 

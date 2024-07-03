@@ -11,9 +11,7 @@ app.use(express.json())
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://dataAdmin:ayon1234@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-// mongodb+srv://dataAdmin:ayon1234@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -58,8 +56,14 @@ async function run() {
       const result = await Taskcollections.deleteOne(query);
       res.send(result);
     });
+    app.delete('/deletepost/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await postcollections.deleteOne(query);
+      res.send(result);
+    });
 
-
+    // ---------admin powers end-----------//
     
     // API to update user coin field 
     app.patch('/updateuserpoints', async (req, res) => {

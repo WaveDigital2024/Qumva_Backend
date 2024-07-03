@@ -29,6 +29,7 @@ async function run() {
     const database = client.db("QumvaDB");
     const Taskcollections = database.collection("QumvaTasks");
     const usercollections = database.collection("Gameusers");
+    const postcollections = database.collection("Posts");
 
     //apis
     //userReviewGetAPI
@@ -168,6 +169,12 @@ async function run() {
     //-----------------------------------------------------------//
 
 
+    // -------Post Api---------------//
+    app.get('/posts', async (req, res) => {
+      const cursor = postcollections.find()
+      const result = await cursor.toArray();
+      res.send(result)
+    })
 
 
 

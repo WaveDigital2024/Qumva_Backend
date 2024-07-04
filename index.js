@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000;
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 require('dotenv').config()
 // middleware
 app.use(cors({
@@ -28,6 +29,11 @@ async function run() {
     const Taskcollections = database.collection("QumvaTasks");
     const usercollections = database.collection("Gameusers");
     const postcollections = database.collection("Posts");
+    const otpCollection = database.collection("otps");
+
+
+    console.log('Email user:', process.env.EMAIL_USER);
+    console.log('Email pass:', process.env.EMAIL_PASS);
 
     //apis
     //userReviewGetAPI
@@ -64,7 +70,7 @@ async function run() {
     });
 
     // ---------admin powers end-----------//
-    
+
     // API to update user coin field 
     app.patch('/updateuserpoints', async (req, res) => {
       const email = req.body.email;
@@ -129,7 +135,7 @@ async function run() {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      res.send({ QumvaPoints : user.QumvaPoints });
+      res.send({ QumvaPoints: user.QumvaPoints });
     });
 
     app.patch('/transferpoints', async (req, res) => {
@@ -181,6 +187,100 @@ async function run() {
     })
 
 
+    // ---------------------------------- Otp Verification Code-----------------//
+    // OTP email sender function
+    const sendOtp = (email, otp) => {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        secure : true ,
+        port : 465,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Your Qumva OTP Code',
+        text: `Your OTP code is ${otp}`
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+      });
+    };
+
+    // Register route
+    app.post('/register', async (req, res) => {
+      const { email, name } = req.body;
+      try {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        await usercollections.insertOne({ email,name, userRole: 'user', userType: 'notverified', QumvaPoints: 0 });
+        await otpCollection.insertOne({ email, otp, createdAt: new Date() });
+        sendOtp(email, otp);
+        res.status(200).json({ message: 'User registered successfully, OTP sent to email' });
+      } catch (error) {
+        res.status(500).json({ error: 'Error registering user' });
+      }
+    });
+
+    // Verify OTP route
+    app.post('/verify-otp', async (req, res) => {
+      const { email, otp } = req.body;
+      try {
+        const otpRecord = await otpCollection.findOne({ email, otp });
+        if (!otpRecord) {
+          return res.status(400).json({ error: 'Invalid OTP' });
+        }
+        const otpAge = (new Date() - new Date(otpRecord.createdAt)) / 1000 / 60;
+        if (otpAge > 5) {
+          return res.status(400).json({ error: 'OTP expired' });
+        }
+        await usercollections.updateOne({ email }, { $set: { userType: 'verified' } });
+        await otpCollection.deleteOne({ email, otp });
+        res.status(200).json({ message: 'User verified successfully' });
+      } catch (error) {
+        res.status(500).json({ error: 'Error verifying OTP' });
+      }
+    });
+
+
+
+
+    // ------------------------------------------------------------------------------------------
+
+    app.post('/google-login', async (req, res) => {
+      const { email, name } = req.body;
+
+      try {
+        let user = await usercollections.findOne({ email });
+
+        if (!user) {
+          user = {
+            email,
+            name,
+            userRole: 'user',
+            userType: 'verified',
+            QumvaPoints: 0,
+            goldcoins: 0
+          };
+          await usercollections.insertOne(user);
+        } else {
+          await usercollections.updateOne({ email }, { $set: { userType: 'verified' } });
+        }
+
+        res.status(200).json({ message: 'Login successful', user });
+      } catch (error) {
+        res.status(500).json({ error: 'Error logging in with Google' });
+      }
+    });
+    // ------------------------------------------------Otp Verification Code Ends--------------------//
 
 
 

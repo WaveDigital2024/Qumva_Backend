@@ -282,6 +282,31 @@ async function run() {
     });
     // ------------------------------------------------Otp Verification Code Ends--------------------//
 
+     // ---------------ADMIN---------------//
+     app.get('/admin', async (req, res) => {
+      // prodcut info
+      const cursor1 =usercollections.find()
+      const user = await cursor1.toArray();
+      const usercount = user.length
+      //review info
+      const cursor2 = Taskcollections.find()
+      const task = await cursor2.toArray();
+      const taskcount = task.length
+      //user info
+      const cursor3 = postcollections.find()
+      const posts = await cursor3.toArray();
+      const postscount = posts.length
+      
+      const Allinfo = {usercount  , taskcount , postscount }
+      res.send(Allinfo)
+    })
+    //-----------------Admin Add Posts----------//
+    app.post('/addposts', async (req, res) => {
+      const post = req.body;
+      const result = await postcollections.insertOne(post);
+      res.send(result)
+    })
+
 
 
 

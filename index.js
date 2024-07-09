@@ -306,6 +306,11 @@ async function run() {
       const result = await postcollections.insertOne(post);
       res.send(result)
     })
+    app.post('/addtask', async (req, res) => {
+      const post = req.body;
+      const result = await Taskcollections.insertOne(post);
+      res.send(result)
+    })
 
 
 

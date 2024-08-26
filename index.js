@@ -10,6 +10,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
+// https://qumva.com
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -27,7 +28,7 @@ async function run() {
     // await client.connect();
     const database = client.db("QumvaDB");
     const Taskcollections = database.collection("QumvaTasks");
-    const usercollections = database.collection("Gameusers");
+    const usercollections = database.collection("Qumvausers");
     const postcollections = database.collection("Posts");
     const otpCollection = database.collection("otps");
 
@@ -36,6 +37,67 @@ async function run() {
     console.log('Email pass:', process.env.EMAIL_PASS);
 
     //apis
+
+
+    // --------------------New Feature 24 hour cliam-------------//
+    // ----------check coin api------------//
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    app.get('/check-claim/:email', async (req, res) => {
+      try {
+        const { email } = req.params;
+        const user = await usercollections.findOne({ email });
+
+        if (!user) return res.status(404).send({ canClaim: false, message: "User not found" });
+
+        const now = Date.now();
+        const lastClaim = user.lastClaimTime || 0;
+        const timeSinceLastClaim = now - lastClaim;
+
+        if (timeSinceLastClaim >= ONE_DAY) {
+          return res.send({ canClaim: true });
+        }
+
+        const timeLeft = ONE_DAY - timeSinceLastClaim;
+        return res.send({ canClaim: false, timeLeft });
+
+      } catch (error) {
+        console.error(error);
+        return res.status(500).send({ message: "Server error" });
+      }
+    });
+    // ------Claim Coins API---------//
+    // ------Claim Coins API---------//
+    app.post('/claim-points', async (req, res) => {
+      try {
+        const { email } = req.body;
+        const user = await usercollections.findOne({ email });
+
+        if (!user) return res.status(404).send({ success: false, message: "User not found" });
+
+        const now = Date.now();
+        const lastClaim = user.lastClaimTime || 0;
+
+        if (now - lastClaim < ONE_DAY) {
+          const timeLeft = ONE_DAY - (now - lastClaim);
+          return res.send({ success: false, message: `Please wait ${timeLeft} ms to claim again.` });
+        }
+
+        await usercollections.updateOne(
+          { email },
+          {
+            $inc: { QumvaPoints: 100 },
+            $set: { lastClaimTime: now }
+          }
+        );
+
+        return res.send({ success: true, message: "You have claimed 100 Qumva Points!" });
+
+      } catch (error) {
+        console.error(error);
+        return res.status(500).send({ success: false, message: "Server error" });
+      }
+    });
+    // ---------------------------//
     //userReviewGetAPI
     // Games Collections Api
     app.get('/tasks', async (req, res) => {
@@ -125,6 +187,33 @@ async function run() {
       res.send(result)
     })
 
+    // update twitter api 
+    app.patch('/twitter/:email', async (req, res) => {
+      const email = req.params.email;
+      
+      // Create filter by email
+      const filter = { email: email };
+
+      // Document update - setting Twitter to "Connected"
+      const updateDoc = {
+        $set: {
+          Twitter: "Connected"
+        }
+      };
+
+      try {
+        // Perform the update operation
+        const result = await usercollections.updateOne(filter, updateDoc);
+
+        // Send back the result
+        res.send(result);
+      } catch (error) {
+        console.error('Error updating user Twitter status:', error);
+        res.status(500).send({ message: 'Error updating Twitter status' });
+      }
+    });
+
+
 
     // ---------------------Transfer Point System----------------//
     app.get('/checkpoints/:email', async (req, res) => {
@@ -192,8 +281,8 @@ async function run() {
     const sendOtp = (email, otp) => {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
-        secure : true ,
-        port : 465,
+        secure: true,
+        port: 465,
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
@@ -221,7 +310,7 @@ async function run() {
       const { email, name } = req.body;
       try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        await usercollections.insertOne({ email,name, userRole: 'user', userType: 'notverified', QumvaPoints: 0 });
+        await usercollections.insertOne({ email, name, userRole: 'user', userType: 'notverified', QumvaPoints: 1000, Twitter: 'NotConnected' });
         await otpCollection.insertOne({ email, otp, createdAt: new Date() });
         sendOtp(email, otp);
         res.status(200).json({ message: 'User registered successfully, OTP sent to email' });
@@ -267,8 +356,8 @@ async function run() {
             name,
             userRole: 'user',
             userType: 'verified',
-            QumvaPoints: 0,
-            goldcoins: 0
+            QumvaPoints: 1000,
+            Twitter: 'NotConnected'
           };
           await usercollections.insertOne(user);
         } else {
@@ -282,10 +371,10 @@ async function run() {
     });
     // ------------------------------------------------Otp Verification Code Ends--------------------//
 
-     // ---------------ADMIN---------------//
-     app.get('/admin', async (req, res) => {
+    // ---------------ADMIN---------------//
+    app.get('/admin', async (req, res) => {
       // prodcut info
-      const cursor1 =usercollections.find()
+      const cursor1 = usercollections.find()
       const user = await cursor1.toArray();
       const usercount = user.length
       //review info
@@ -296,8 +385,8 @@ async function run() {
       const cursor3 = postcollections.find()
       const posts = await cursor3.toArray();
       const postscount = posts.length
-      
-      const Allinfo = {usercount  , taskcount , postscount }
+
+      const Allinfo = { usercount, taskcount, postscount }
       res.send(Allinfo)
     })
     //-----------------Admin Add Posts----------//

@@ -18,8 +18,20 @@ app.use(express.json())
 
 
 
+// server
+// const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+// const uri = process.env.MongoURI;
+// const client = new MongoClient(uri, {
+//   serverApi: {
+//     version: ServerApiVersion.v1,
+//     strict: true,
+//     deprecationErrors: true,
+//   }
+// });
+
+// localhost
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = process.env.MongoURI;
+const uri = `mongodb+srv://ayon2024:zMbzzHiLMuiE462q@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -27,7 +39,6 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
-
 
 async function run() {
   try {
@@ -45,20 +56,35 @@ async function run() {
 
     //apis
 
-    // referd feature//
-    // update user make admin
+    // Referral feature
     app.patch('/refered', async (req, res) => {
-      const { email, referralCode} = req.body;
-      console.log(email ,referralCode);
-      // const filter = { _id: new ObjectId(id) }
-      // const updateDoc = {
-      //   $set: {
-      //     userRole: 'admin'
-      //   }
-      // }
-      // const result = await usercollections.updateOne(filter, updateDoc)
-      // res.send(result)
-    })
+      const { email, referralCode } = req.body;
+
+      try {
+        // Check if referralCode exists in the collection
+        const referredUser = await usercollections.findOne({ _id: new ObjectId(referralCode) });
+
+        if (referredUser) {
+          // Increment the Refers field for the old user
+          await usercollections.updateOne({ _id: new ObjectId(referralCode) }, { $inc: { Refers: 1 } });
+
+          // Update the new user's Refered field to true
+          const updateDoc = {
+            $set: {
+              Refered: true
+            }
+          };
+          await usercollections.updateOne({ email }, updateDoc);
+
+          res.send({ success: true, message: "Referral successful" });
+        } else {
+          res.status(404).send({ success: false, message: "Referral code not found" });
+        }
+      } catch (error) {
+        console.error('Error processing referral:', error);
+        res.status(500).send({ success: false, message: "Internal server error" });
+      }
+    });
 
 
 
@@ -334,7 +360,7 @@ async function run() {
       const { email, name } = req.body;
       try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        await usercollections.insertOne({ email, name, userRole: 'user', userType: 'notverified', QumvaPoints: 1000, Twitter: 'NotConnected', Refered: false , Refers : 0 });
+        await usercollections.insertOne({ email, name, userRole: 'user', userType: 'notverified', QumvaPoints: 1000, Twitter: 'NotConnected', Refered: false, Refers: 0 });
         await otpCollection.insertOne({ email, otp, createdAt: new Date() });
         sendOtp(email, otp);
         res.status(200).json({ message: 'User registered successfully, OTP sent to email' });
@@ -383,7 +409,7 @@ async function run() {
             QumvaPoints: 1000,
             Twitter: 'NotConnected',
             Refered: false,
-            Refers : 0
+            Refers: 0
           };
           await usercollections.insertOne(user);
         } else {

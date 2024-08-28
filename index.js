@@ -45,6 +45,25 @@ async function run() {
 
     //apis
 
+    // referd feature//
+    // update user make admin
+    app.patch('/refered', async (req, res) => {
+      const { email, referralCode} = req.body;
+      console.log(email ,referralCode);
+      // const filter = { _id: new ObjectId(id) }
+      // const updateDoc = {
+      //   $set: {
+      //     userRole: 'admin'
+      //   }
+      // }
+      // const result = await usercollections.updateOne(filter, updateDoc)
+      // res.send(result)
+    })
+
+
+
+    // ---------------------------//
+
     // --------------------New Feature 24 hour cliam-------------//
     // ----------check coin api------------//
     const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -71,7 +90,6 @@ async function run() {
         return res.status(500).send({ message: "Server error" });
       }
     });
-    // ------Claim Coins API---------//
     // ------Claim Coins API---------//
     app.post('/claim-points', async (req, res) => {
       try {
@@ -196,7 +214,7 @@ async function run() {
     // update twitter api 
     app.patch('/twitter/:email', async (req, res) => {
       const email = req.params.email;
-      
+
       // Create filter by email
       const filter = { email: email };
 
@@ -316,7 +334,7 @@ async function run() {
       const { email, name } = req.body;
       try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        await usercollections.insertOne({ email, name, userRole: 'user', userType: 'notverified', QumvaPoints: 1000, Twitter: 'NotConnected' });
+        await usercollections.insertOne({ email, name, userRole: 'user', userType: 'notverified', QumvaPoints: 1000, Twitter: 'NotConnected', Refered: false , Refers : 0 });
         await otpCollection.insertOne({ email, otp, createdAt: new Date() });
         sendOtp(email, otp);
         res.status(200).json({ message: 'User registered successfully, OTP sent to email' });
@@ -363,7 +381,9 @@ async function run() {
             userRole: 'user',
             userType: 'verified',
             QumvaPoints: 1000,
-            Twitter: 'NotConnected'
+            Twitter: 'NotConnected',
+            Refered: false,
+            Refers : 0
           };
           await usercollections.insertOne(user);
         } else {

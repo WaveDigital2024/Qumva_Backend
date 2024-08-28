@@ -5,15 +5,21 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 require('dotenv').config()
 // middleware
+// // server middleware
+// app.use(cors({
+//   origin: 'https://qumva.com'
+// }))
+// app.use(express.json())
+// localhost middleware
 app.use(cors({
   origin: 'http://localhost:5173'
 }))
 app.use(express.json())
 
-// https://qumva.com
+
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = process.env.MongoURI;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -22,13 +28,14 @@ const client = new MongoClient(uri, {
   }
 });
 
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-    const database = client.db("QumvaDB");
+    const database = client.db("qumva_db");
     const Taskcollections = database.collection("QumvaTasks");
-    const usercollections = database.collection("Qumvausers");
+    const usercollections = database.collection("Gameusers");
     const postcollections = database.collection("Posts");
     const otpCollection = database.collection("otps");
 
@@ -37,7 +44,6 @@ async function run() {
     console.log('Email pass:', process.env.EMAIL_PASS);
 
     //apis
-
 
     // --------------------New Feature 24 hour cliam-------------//
     // ----------check coin api------------//

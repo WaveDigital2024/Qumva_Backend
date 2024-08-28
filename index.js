@@ -19,19 +19,8 @@ app.use(express.json())
 
 
 // server
-// const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-// const uri = process.env.MongoURI;
-// const client = new MongoClient(uri, {
-//   serverApi: {
-//     version: ServerApiVersion.v1,
-//     strict: true,
-//     deprecationErrors: true,
-//   }
-// });
-
-// localhost
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://ayon2024:zMbzzHiLMuiE462q@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
+const uri = process.env.MongoURI;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -39,6 +28,17 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+// localhost
+// const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+// const uri = `mongodb+srv://ayon2024:zMbzzHiLMuiE462q@cluster0.6rjuyq3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
+// const client = new MongoClient(uri, {
+//   serverApi: {
+//     version: ServerApiVersion.v1,
+//     strict: true,
+//     deprecationErrors: true,
+//   }
+// });
 
 async function run() {
   try {
@@ -66,7 +66,7 @@ async function run() {
 
         if (referredUser) {
           // Increment the Refers field for the old user
-          await usercollections.updateOne({ _id: new ObjectId(referralCode) }, { $inc: { Refers: 1 } });
+          await usercollections.updateOne({ _id: new ObjectId(referralCode) }, { $inc: { Refers: 1 , QumvaPoints : 100 }  });
 
           // Update the new user's Refered field to true
           const updateDoc = {

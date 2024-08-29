@@ -66,7 +66,7 @@ async function run() {
 
         if (referredUser) {
           // Increment the Refers field for the old user
-          await usercollections.updateOne({ _id: new ObjectId(referralCode) }, { $inc: { Refers: 1 , QumvaPoints : 100 }  });
+          await usercollections.updateOne({ _id: new ObjectId(referralCode) }, { $inc: { Refers: 1, QumvaPoints: 100 } });
 
           // Update the new user's Refered field to true
           const updateDoc = {
@@ -155,18 +155,50 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result)
     })
-    // API to update a task's "done" field to true
+
+    // ----------------------------------------------------------------New Task Update---------------------//
     app.patch('/completetask/:id', async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) }
-      const updateDoc = {
-        $set: {
-          done: true
+      const taskId = req.params.id;
+      const { email } = req.body;  // Get the user's email from the request body
+
+      try {
+        // Find the task by ID
+        const task = await Taskcollections.findOne({ _id: new ObjectId(taskId) });
+
+        if (!task) {
+          return res.status(404).send({ message: 'Task not found' });
         }
+
+        // Check if the user has already completed this task
+        if (task.completedEmails && task.completedEmails.includes(email)) {
+          return res.status(400).send({ message: 'User has already completed this task' });
+        }
+
+        // Decrement the amount by 1
+        const updatedAmount = task.amount - 1;
+        const updateDoc = {
+          $inc: { amount: -1 },
+          $addToSet: { completedEmails: email }, // Add the user's email to completedEmails
+        };
+
+        // If the amount reaches 0, mark the task as done
+        if (updatedAmount <= 0) {
+          updateDoc.$set = { done: true };
+        }
+
+        // Update the task
+        const result = await Taskcollections.updateOne({ _id: new ObjectId(taskId) }, updateDoc);
+
+        res.send(result);
+      } catch (error) {
+        console.error('Error updating task:', error);
+        res.status(500).send({ message: 'Internal server error' });
       }
-      const result = await Taskcollections.updateOne(filter, updateDoc)
-      res.send(result)
-    })
+    });
+
+
+
+    // ------------------------------------------------------------------------------------------------//
     // --------------admin delete task--------------// 
     app.delete('/deletetask/:id', async (req, res) => {
       const id = req.params.id;
@@ -468,7 +500,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('Qumva Coin Project server is running')
+  res.send('Qumva Project server is running')
 })
 
 app.listen(port, () => {
